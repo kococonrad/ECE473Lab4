@@ -37,6 +37,7 @@ volatile int count = 0;
 
 uint8_t CurMode = 0x01;
 static uint8_t lastButton = 0, deb_count = 0;
+
 char ActiveModes = 0x00;
 char ColonControl = 0x00;
 RTC_Time Time;
@@ -44,6 +45,7 @@ RTC_Time Time;
 ISR(TIMER0_OVF_vect){
 	ColonControl ^= 0x01;
 	incrementTime(&Time);
+	count++;
 }
 
 //Input: NULL
@@ -68,9 +70,10 @@ uint8_t readButtons(){
 }
 
 void Timer0Setup(){
-	ASSR=(1 << AS0);
-	TCNT0=0x00;
-	TCCR0= (1<<CS00)|(1<<CS02); //Set prescaling to 4, so Timer clock = Fosc/128
+	ASSR = (1 << AS0);
+	TCNT0 = 0x00;
+	//TCCR0 = (1<<CS00)|(1<<CS02); //Prescaling of 128 for real time clock
+	TCCR0 = (0<<CS00)|(1<<CS01); //Prescaling of 256 for double time
 	TIMSK = (1<<TOIE0); //Timer 0 Overflow flag interrupt enable
 	_delay_ms(1000); //Allow crystal stabilization
 }
@@ -124,11 +127,11 @@ int main(){
 	sei();   //Global Interrupt Enable
 	write2Bar(CurMode);
 	Time.sec = 20;
-	Time.min = 30;
-	Time.hour = 0;
+	Time.min = 20;
+	Time.hour = 1;
 	
 	while(1){
-		set7SegmentDigits(&Time); // Writes current number to 7seg
+		set7SegmentDigits_Number(count); // Writes current number to 7seg
 		DisplayDigits(ColonControl);
 	}
 }
