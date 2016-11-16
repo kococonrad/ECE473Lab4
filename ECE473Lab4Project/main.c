@@ -45,6 +45,7 @@ char ActiveModes = 0x00;
 char ColonControl = 0x00;
 RTC_Time Time;
 RTC_Time AlarmTime;
+uint8_t AlarmArmed = 0;
 
 int scale[] = {C5, CSharp5, D5, DSharp5, E5, F5, FSharp5, G5, GSharp5, A5, ASharp5, B5};
 
@@ -64,6 +65,9 @@ ISR(TIMER0_OVF_vect){
 	count++;
 }
 
+ISR(ADC_vect){
+	setBrightness(ADCH);
+}
 
 //Input: NULL
 //Ouput: Returns the state of the pushbuttons encompassing debounce functionality
@@ -151,32 +155,28 @@ int main(){
 	init_DeviceDependencies();
 	Timer3Setup();
 	init_SPI();
+	ADC0Setup();
 	
 	getCurrentEncoderStates();
 	sei();   //Global Interrupt Enable
 	write2Bar(CurMode);
-	Time.sec = 50;
-	Time.min = 23;
-	Time.hour = 1;
+	Time.sec = 45;
+	Time.min = 33;
+	Time.hour = 0;
 	AlarmTime.sec = 0;
 	AlarmTime.min = 0;
 	AlarmTime.hour = 0;
 	
 	while(1){
-		setBrightness(brightness);
-		setVolume(0x0100);
+		setVolume(0);
 		
-		uint8_t state = readEncoders();
-		
-		if(state == FWD)
-			brightness += 10;
-		else if(state == REV)
-			brightness -= 10;
-
 		getMode();
-		if (AlarmTime.hour == Time.hour && AlarmTime.min == Time.min)
+		if (AlarmArmed == 1)
 		{
-			SoundAlarm();
+			if (AlarmTime.hour == Time.hour && AlarmTime.min == Time.min)
+			{
+				SoundAlarm();
+			}
 		}
 	}
 }

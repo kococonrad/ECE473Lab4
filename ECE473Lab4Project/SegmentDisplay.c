@@ -77,22 +77,10 @@ void DisplayTime(RTC_Time* CurrentTime, uint8_t flashColon){
 		DigitsPort = ~(digitValues.digit4);
 	_delay_us(GhostingAdj);
 	DigitSelectPort = Digit3;
-	if (digitValues.digit3 == Zero && zeroState == Digit4ZeroBit)
-	{
-		zeroState |= Digit3ZeroBit;
-		DigitsPort = 0xFF;
-	}
-	else
-		DigitsPort = ~(digitValues.digit3);
+	DigitsPort = ~(digitValues.digit3);
 	_delay_us(GhostingAdj);
 	DigitSelectPort = Digit2;
-	if (digitValues.digit2 == Zero && zeroState == D4_D3Zero)
-	{
-		zeroState |= Digit2ZeroBit;
-		DigitsPort = 0xFF;
-	}
-	else
-		DigitsPort = ~(digitValues.digit2);
+	DigitsPort = ~(digitValues.digit2);
 	_delay_us(GhostingAdj);
 	DigitSelectPort = Digit1;
 	DigitsPort = ~(digitValues.digit1);
@@ -260,11 +248,23 @@ void set7SegmentDigits_Number(short Number){
 }
 
 void Timer2Setup(){
-	TCCR2 = (1<<WGM20)|(1<<WGM21)|(1<<COM21)|(1<<CS20);
+	TCCR2 = (1<<WGM20)|(1<<WGM21)|(1<<COM21)|(1<<COM20)|(1<<CS20);
 	
 	PWMDDR |= (1<<PWMPin);
 }
 
 void setBrightness(uint8_t duty){
-	OCR2 = duty;
+	if (duty <= 1)
+	{
+		OCR2 = 2;
+	}
+	else
+	{
+		OCR2 = duty;
+	}
+}
+
+void ADC0Setup(){
+	ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0) | (1<< ADEN) | (1 << ADFR) | (1 << ADSC) | (1 << ADIE);
+	ADMUX |= (1 << REFS0) | (1 << ADLAR) | (1 << MUX0);
 }

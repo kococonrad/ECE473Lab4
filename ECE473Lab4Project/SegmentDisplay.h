@@ -70,4 +70,5 @@ void set7SegmentDigits_Number(short Number);
 short DisplayTime_TimeSetter(RTC_Time* CurrentTime, uint8_t TimeParameter);
 void Timer2Setup();
 void setBrightness(uint8_t duty);
+void ADC0Setup();
 #endif /* SEGMENTDISPLAY_H_ */
