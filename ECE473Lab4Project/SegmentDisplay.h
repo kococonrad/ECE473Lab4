@@ -18,6 +18,8 @@
 #define Digit4 0x40
 #define Colon 0x20
 #define DigitsPort PORTA
+#define DigitSelectPort PORTC
+#define DigitSelectDDR DDRC
 #define A 0x01 //green
 #define B 0x02 //blue
 #define C 0x04 //purple
@@ -30,7 +32,7 @@
 #define LED_ON 1 		// loops this many time through 7 seg
 #define BUTTON_EN 0xF0
 #define DECODER_Mask 0xF0
-#define LEDDECDIR DDRB
+#define LEDDECDIR DDRC
 #define GhostingAdj 280
 #define Digit4ZeroBit 0x08
 #define Digit3ZeroBit 0x04
@@ -47,6 +49,9 @@
 #define Seven (A+B+C)
 #define Eight (A+B+C+D+E+F+G)
 #define Nine (A+B+C+F+G)
+#define S A
+#define M G
+#define H D
 
 typedef struct {
 	uint8_t digit1;
@@ -56,8 +61,13 @@ typedef struct {
 	uint8_t colon;
 } SegmentDigits;
 
-void DisplayDigits(uint8_t flashColon);
+void Display(int Number);
+void DisplayTime(RTC_Time* CurrentTime, uint8_t flashColon);
+void AlarmDisplayTime(RTC_Time* CurrentTime, uint8_t flashColon);
 uint8_t dec2Segments(uint8_t Number);
 void set7SegmentDigits_Time(RTC_Time* CurrentTime);
-void set7SegmentDigits_Number(int Number);
+void set7SegmentDigits_Number(short Number);
+short DisplayTime_TimeSetter(RTC_Time* CurrentTime, uint8_t TimeParameter);
+void Timer2Setup();
+void setBrightness(uint8_t duty);
 #endif /* SEGMENTDISPLAY_H_ */

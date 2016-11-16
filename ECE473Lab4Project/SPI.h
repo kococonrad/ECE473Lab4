@@ -15,8 +15,8 @@
 
 //SPI Project Declerations
 #define BG_OEPort PORTB
-#define BG_OEPortDir DDRB
-#define BG_OEPin PB7 //PB7
+#define BG_OEPortDir DDRE
+#define BG_OEPin PE5 //PB7
 #define BG_SRCLK PB1 //PB1
 #define BG_REGCLKPort PORTD
 #define BG_REGCLKDir DDRD

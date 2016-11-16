@@ -9,14 +9,65 @@
 #endif
 #include<avr/io.h>
 #include "SegmentDisplay.h"
+#include "WaveGeneration.h"
 #include "RTC_Time.h"
+#include "Encoder.h"
+#include "main.h"
 
 volatile SegmentDigits digitValues;
 
-void DisplayDigits(uint8_t flashColon){
+void AlarmDisplayTime(RTC_Time* CurrentTime, uint8_t flashColon){
+	uint8_t DigitDelay = 100;
+	int count = 0;
+	DDRA = 0xFF;
+	set7SegmentDigits_Time(CurrentTime);
+	
+	DigitSelectPort = Digit4;
+	DigitsPort = ~(digitValues.digit4);
+	_delay_ms(DigitDelay);
+	DigitsPort = 0xFF;
+	_delay_ms(DigitDelay);
+	
+	DigitSelectPort = Digit3;
+	DigitsPort = ~(digitValues.digit3);
+	_delay_ms(DigitDelay);
+	DigitsPort = 0xFF;
+	_delay_ms(DigitDelay);
+	
+	DigitSelectPort = Colon;
+	DigitsPort = ~(A|B|~C);
+	_delay_ms(DigitDelay);
+	DigitsPort = 0xFF;
+	_delay_ms(DigitDelay);
+	
+	DigitSelectPort = Digit2;
+	DigitsPort = ~(digitValues.digit2);
+	_delay_ms(DigitDelay);
+	DigitsPort = 0xFF;
+	_delay_ms(DigitDelay);
+	
+	DigitSelectPort = Digit1;
+	DigitsPort = ~(digitValues.digit1);
+	_delay_ms(DigitDelay);
+	DigitsPort = 0xFF;
+	_delay_ms(DigitDelay);
+	
+	
+	do 
+	{
+		setFrequency(1200);
+		DisplayTime(CurrentTime, 1);
+		count++;
+	} while (count< 300);
+	setFrequency(0);
+}
+
+void DisplayTime(RTC_Time* CurrentTime, uint8_t flashColon){
 	uint8_t zeroState = 0x00;
 	DDRA = 0xFF;
-	PORTB = Digit4;
+	set7SegmentDigits_Time(CurrentTime);
+	
+	DigitSelectPort = Digit4;
 	if (digitValues.digit4 == Zero)
 	{
 		zeroState |= Digit4ZeroBit;
@@ -25,7 +76,7 @@ void DisplayDigits(uint8_t flashColon){
 	else
 		DigitsPort = ~(digitValues.digit4);
 	_delay_us(GhostingAdj);
-	PORTB = Digit3;
+	DigitSelectPort = Digit3;
 	if (digitValues.digit3 == Zero && zeroState == Digit4ZeroBit)
 	{
 		zeroState |= Digit3ZeroBit;
@@ -34,7 +85,7 @@ void DisplayDigits(uint8_t flashColon){
 	else
 		DigitsPort = ~(digitValues.digit3);
 	_delay_us(GhostingAdj);
-	PORTB = Digit2;
+	DigitSelectPort = Digit2;
 	if (digitValues.digit2 == Zero && zeroState == D4_D3Zero)
 	{
 		zeroState |= Digit2ZeroBit;
@@ -43,22 +94,116 @@ void DisplayDigits(uint8_t flashColon){
 	else
 		DigitsPort = ~(digitValues.digit2);
 	_delay_us(GhostingAdj);
-	PORTB = Digit1;
+	DigitSelectPort = Digit1;
 	DigitsPort = ~(digitValues.digit1);
 	_delay_us(GhostingAdj);
 	//Sets port A to output
 	if (flashColon == 1)
 	{
-		PORTB = Colon;
+		DigitSelectPort = Colon;
 		DigitsPort = ~(A|B|~C);
 	}
 	else
 	{
-		PORTB = Colon;
+		DigitSelectPort = Colon;
 		DigitsPort = (A|B|C);
 	}
 	_delay_us(GhostingAdj);
 	DigitsPort = 0xFF;
+}
+
+void Display(int Number){
+	uint8_t zeroState = 0x00;
+	DDRA = 0xFF;
+	set7SegmentDigits_Number(Number);
+	
+	DigitSelectPort = Digit4;
+	if (digitValues.digit4 == Zero)
+	{
+		zeroState |= Digit4ZeroBit;
+		DigitsPort = 0xFF;
+	}
+	else
+	DigitsPort = ~(digitValues.digit4);
+	_delay_us(GhostingAdj);
+	DigitSelectPort = Digit3;
+	if (digitValues.digit3 == Zero && zeroState == Digit4ZeroBit)
+	{
+		zeroState |= Digit3ZeroBit;
+		DigitsPort = 0xFF;
+	}
+	else
+	DigitsPort = ~(digitValues.digit3);
+	_delay_us(GhostingAdj);
+	DigitSelectPort = Digit2;
+	if (digitValues.digit2 == Zero && zeroState == D4_D3Zero)
+	{
+		zeroState |= Digit2ZeroBit;
+		DigitsPort = 0xFF;
+	}
+	else
+	DigitsPort = ~(digitValues.digit2);
+	_delay_us(GhostingAdj);
+	DigitSelectPort = Digit1;
+	DigitsPort = ~(digitValues.digit1);
+	_delay_us(GhostingAdj);
+	//Sets port A to output
+	DigitSelectPort = Colon;
+	DigitsPort = (A|B|C);
+	_delay_us(GhostingAdj);
+	DigitsPort = 0xFF;
+}
+
+short DisplayTime_TimeSetter(RTC_Time* CurrentTime, uint8_t TimeParameter){
+	uint8_t state1, ret;
+	short temp = 0;
+	switch (TimeParameter)
+	{
+		case S:
+			temp = CurrentTime->sec;
+			break;
+		case M:
+			temp = CurrentTime->min;
+			break;
+		case H:
+			temp = CurrentTime->hour;
+			break;
+		default:
+		/* Your code here */
+		break;
+	}
+	do
+	{
+		state1 = readEncoders();
+		
+		if(state1 == FWD)
+			temp++;
+		else if(state1 == REV)
+			temp--;
+		
+		if (temp >= 60)
+		{
+			temp = 0;
+		}
+		else if (temp < 0)
+		{
+			temp = 60;
+		}
+		DDRA = 0xFF;
+		set7SegmentDigits_Number(temp);
+		DigitSelectPort = Digit4;
+		DigitsPort = ~(TimeParameter);
+		_delay_us(GhostingAdj);
+		DigitSelectPort = Digit2;
+		DigitsPort = ~(digitValues.digit2);
+		_delay_us(GhostingAdj);
+		DigitSelectPort = Digit1;
+		DigitsPort = ~(digitValues.digit1);
+		_delay_us(GhostingAdj);
+		
+		ret = readButtons();
+	} while (ret != SETBUTTON);
+	return temp;
 }
 
 uint8_t dec2Segments(uint8_t Number){
@@ -101,15 +246,25 @@ uint8_t dec2Segments(uint8_t Number){
 }
 
 void set7SegmentDigits_Time(RTC_Time* CurrentTime){
-	digitValues.digit4 = dec2Segments(CurrentTime->hour/1000);
-	digitValues.digit3 = dec2Segments((CurrentTime->hour/100)%10);
+	digitValues.digit4 = dec2Segments((CurrentTime->hour/10)%10);
+	digitValues.digit3 = dec2Segments(CurrentTime->hour%10);
 	digitValues.digit2 = dec2Segments((CurrentTime->min/10)%10);
 	digitValues.digit1 = dec2Segments(CurrentTime->min%10);
 }
 
-void set7SegmentDigits_Number(int Number){
+void set7SegmentDigits_Number(short Number){
 	digitValues.digit4 = dec2Segments(Number/1000);
 	digitValues.digit3 = dec2Segments((Number/100)%10);
 	digitValues.digit2 = dec2Segments((Number/10)%10);
 	digitValues.digit1 = dec2Segments(Number%10);
+}
+
+void Timer2Setup(){
+	TCCR2 = (1<<WGM20)|(1<<WGM21)|(1<<COM21)|(1<<CS20);
+	
+	PWMDDR |= (1<<PWMPin);
+}
+
+void setBrightness(uint8_t duty){
+	OCR2 = duty;
 }

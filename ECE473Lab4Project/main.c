@@ -24,29 +24,46 @@
 #include "SPI.h"
 #include "RTC_Time.h"
 #include "SegmentDisplay.h"
+#include "WaveGeneration.h"
 #include "Encoder.h"
 #include "main.h"
 
 
 #define CLOCK_SET 0b00000001
-#define CLOCK_LOCK 0b00000010
+#define ALARM_SET 0b00000010
 
 #define DEBOUNCE_TIME 4 	// Number of button reads until it acknowledge button press
 
 volatile int count = 0;
+volatile uint8_t brightness=0;
 
 uint8_t CurMode = 0x01;
+uint8_t frequency = 0;
 static uint8_t lastButton = 0, deb_count = 0;
 
 char ActiveModes = 0x00;
 char ColonControl = 0x00;
 RTC_Time Time;
+RTC_Time AlarmTime;
+
+int scale[] = {C5, CSharp5, D5, DSharp5, E5, F5, FSharp5, G5, GSharp5, A5, ASharp5, B5};
 
 ISR(TIMER0_OVF_vect){
+	if (frequency > 11)
+	{
+		frequency = 0;	
+	}
+	else if (frequency < 0)
+	{
+		frequency = 0;
+	}
 	ColonControl ^= 0x01;
 	incrementTime(&Time);
+	setFrequency(scale[frequency]);
+	frequency++;
 	count++;
 }
+
 
 //Input: NULL
 //Ouput: Returns the state of the pushbuttons encompassing debounce functionality
@@ -54,7 +71,7 @@ uint8_t readButtons(){
 	uint8_t result;
 	DDRA = 0x00; // Set port A for input
 
-	PORTB = BUTTON_EN; // Enables only the pushbuttons disabling 7segment
+	DigitSelectPort = BUTTON_EN; // Enables only the pushbuttons disabling 7segment
 	PORTA = 0xFF; // Enable pullup resistors on pushbuttons; active low
 	result = PINA ^ 0xFF;
 	_delay_us(2); // Delay for reading PIN
@@ -72,18 +89,20 @@ uint8_t readButtons(){
 void Timer0Setup(){
 	ASSR = (1 << AS0);
 	TCNT0 = 0x00;
-	//TCCR0 = (1<<CS00)|(1<<CS02); //Prescaling of 128 for real time clock
-	TCCR0 = (0<<CS00)|(1<<CS01); //Prescaling of 256 for double time
+	TCCR0 = (1<<CS00)|(1<<CS02); //Prescaling of 128 for real time clock
+	//TCCR0 = (0<<CS00)|(1<<CS01); //x4 Clock speed
 	TIMSK = (1<<TOIE0); //Timer 0 Overflow flag interrupt enable
 	_delay_ms(1000); //Allow crystal stabilization
 }
+
+
 
 void init_DeviceDependencies(){
 	pinOutput(BG_OEPortDir, BG_OEPin);
 	pinOutput(BG_REGCLKDir, BG_REGCLK);
 	ENC_DDR  |= (1<<ENC_LoadPin)|(1<<ENC_EnPin);
 	ENC_PORT |= (1<<ENC_LoadPin)|(1<<ENC_EnPin);
-	LEDDECDIR |= DECODER_Mask;
+	DigitSelectDDR |= DECODER_Mask; //Initilization for DDRC segment display decoder.
 }
 
 void write2Bar(uint8_t val){
@@ -98,40 +117,66 @@ void write2Bar(uint8_t val){
 
 void getMode(){
 	uint8_t modetemp= readButtons();
-	
+	DDRC = 0x03FF;
 	switch (modetemp)
 	{
 		case CLOCK_SET:
 			write2Bar(CLOCK_SET);
-			ActiveModes |= CLOCK_SET;
+			Time.sec = DisplayTime_TimeSetter(&Time, S);
+			Time.min = DisplayTime_TimeSetter(&Time, M);
+			Time.hour = DisplayTime_TimeSetter(&Time, H);
 		break;
-		case 2:
-			write2Bar(2);
-			CurMode = 2;
-		break;
-		case 4:
-			write2Bar(4);
-			CurMode = 4;
+		case ALARM_SET:
+			write2Bar(ALARM_SET);
+			AlarmTime.sec = DisplayTime_TimeSetter(&Time, S);
+			AlarmTime.min = DisplayTime_TimeSetter(&Time, M);
+			AlarmTime.hour = DisplayTime_TimeSetter(&Time, H);
 		break;
 		default:
-		
+			write2Bar(Time.sec);
+			DisplayTime(&Time, ColonControl);
 		break;
 	}
 }
 
+void SoundAlarm(){
+	AlarmDisplayTime(&Time, ColonControl);
+	_delay_ms(10);
+}
+
 int main(){
 	Timer0Setup();
-	init_SPI();
+	timer1_init();
+	Timer2Setup();
 	init_DeviceDependencies();
+	Timer3Setup();
+	init_SPI();
+	
 	getCurrentEncoderStates();
 	sei();   //Global Interrupt Enable
 	write2Bar(CurMode);
-	Time.sec = 20;
-	Time.min = 20;
+	Time.sec = 50;
+	Time.min = 23;
 	Time.hour = 1;
+	AlarmTime.sec = 0;
+	AlarmTime.min = 0;
+	AlarmTime.hour = 0;
 	
 	while(1){
-		set7SegmentDigits_Number(count); // Writes current number to 7seg
-		DisplayDigits(ColonControl);
+		setBrightness(brightness);
+		setVolume(0x0100);
+		
+		uint8_t state = readEncoders();
+		
+		if(state == FWD)
+			brightness += 10;
+		else if(state == REV)
+			brightness -= 10;
+
+		getMode();
+		if (AlarmTime.hour == Time.hour && AlarmTime.min == Time.min)
+		{
+			SoundAlarm();
+		}
 	}
 }

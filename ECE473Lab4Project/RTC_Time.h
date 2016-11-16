@@ -7,10 +7,13 @@
 #ifndef RTC_TIME_H_
 #define RTC_TIME_H_
 #include <stdint.h>
+
+#define SETBUTTON 0x80
+
 typedef struct {
-	uint8_t sec;
-	uint8_t min;
-	uint8_t hour;
+	short sec;
+	short min;
+	short hour;
 } RTC_Time;
 
 void incrementTime(RTC_Time* Current_Time);
