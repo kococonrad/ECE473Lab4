@@ -33,7 +33,7 @@
 #define BUTTON_EN 0xF0
 #define DECODER_Mask 0xF0
 #define LEDDECDIR DDRC
-#define GhostingAdj 280
+#define GhostingAdj 400
 #define Digit4ZeroBit 0x08
 #define Digit3ZeroBit 0x04
 #define D4_D3Zero (0x08|0x04)

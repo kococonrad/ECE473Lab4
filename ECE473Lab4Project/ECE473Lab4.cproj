@@ -153,6 +153,12 @@
     <Compile Include="Encoder.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="LCDDriver.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="LCDDriver.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="main.c">
       <SubType>compile</SubType>
     </Compile>

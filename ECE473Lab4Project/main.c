@@ -27,12 +27,13 @@
 #include "WaveGeneration.h"
 #include "Encoder.h"
 #include "main.h"
+#include "LCDDriver.h"
 
 
 #define CLOCK_SET 0b00000001
 #define ALARM_SET 0b00000010
 
-#define DEBOUNCE_TIME 4 	// Number of button reads until it acknowledge button press
+#define DEBOUNCE_TIME 3 	// Number of button reads until it acknowledge button press
 
 volatile int count = 0;
 volatile uint8_t brightness=0;
@@ -60,8 +61,9 @@ ISR(TIMER0_OVF_vect){
 	}
 	ColonControl ^= 0x01;
 	incrementTime(&Time);
-	setFrequency(scale[frequency]);
-	frequency++;
+	//LCD_IPainter(70, 40, 1, 88);
+	//setFrequency(scale[frequency]);
+	//frequency++;
 	count++;
 }
 
@@ -139,6 +141,7 @@ void getMode(){
 		default:
 			write2Bar(Time.sec);
 			DisplayTime(&Time, ColonControl);
+			LCD_IPainter(70, 40, 1, 88);
 		break;
 	}
 }
@@ -157,26 +160,31 @@ int main(){
 	init_SPI();
 	ADC0Setup();
 	
+	
 	getCurrentEncoderStates();
 	sei();   //Global Interrupt Enable
 	write2Bar(CurMode);
 	Time.sec = 45;
-	Time.min = 33;
-	Time.hour = 0;
+	Time.min = 05;
+	Time.hour = 17;
 	AlarmTime.sec = 0;
 	AlarmTime.min = 0;
 	AlarmTime.hour = 0;
+	LCD_Init();
+	LCD_MovCursorLn1();
 	
 	while(1){
-		setVolume(0);
+		setVolume(0x03FF);
+		setFrequency(3000);
+		
 		
 		getMode();
-		if (AlarmArmed == 1)
-		{
-			if (AlarmTime.hour == Time.hour && AlarmTime.min == Time.min)
-			{
-				SoundAlarm();
-			}
-		}
+		//if (AlarmArmed == 1)
+		//{
+			//if (AlarmTime.hour == Time.hour && AlarmTime.min == Time.min)
+			//{
+				//SoundAlarm();
+			//}
+		//}
 	}
 }
