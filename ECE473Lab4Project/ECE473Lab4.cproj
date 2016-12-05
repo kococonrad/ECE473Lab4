@@ -183,6 +183,18 @@
     <Compile Include="SPI.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="twi_master.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="twi_master.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uart_functions.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uart_functions.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="WaveGeneration.c">
       <SubType>compile</SubType>
     </Compile>

@@ -314,13 +314,13 @@ void LCD_Init(void) {
 	LCD_CMD(0x0C);
 }
 
-void LCD_IPainter(uint16_t LocalTemp, uint16_t ExternalTemp, uint8_t AlarmStatus, uint16_t Station){
+void LCD_IPainter(char* LocalTemp, uint16_t ExternalTemp, uint8_t AlarmStatus, uint16_t Station){
 	LCD_Clr();
 	LCD_MovCursorLn1();
 	LCD_PutStr("I:");
 	if(LocalTemp <= 0)
 		LocalTemp = 0;
-	LCD_PutDec16(LocalTemp);
+	LCD_PutStr(LocalTemp);
 	LCD_PutStr("  ");
 		
 	LCD_PutStr("    ");

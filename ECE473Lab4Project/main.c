@@ -28,7 +28,8 @@
 #include "Encoder.h"
 #include "main.h"
 #include "LCDDriver.h"
-
+#include "twi_master.h"
+#include "uart_functions.h"
 
 #define CLOCK_SET 0b00000001
 #define ALARM_SET 0b00000010
@@ -47,6 +48,8 @@ char ColonControl = 0x00;
 RTC_Time Time;
 RTC_Time AlarmTime;
 uint8_t AlarmArmed = 0;
+uint8_t data[2] = {0,0};
+int temp = 0;
 
 int scale[] = {C5, CSharp5, D5, DSharp5, E5, F5, FSharp5, G5, GSharp5, A5, ASharp5, B5};
 
@@ -123,6 +126,9 @@ void write2Bar(uint8_t val){
 
 void getMode(){
 	uint8_t modetemp= readButtons();
+	
+	
+	char tempin[7];
 	DDRC = 0x03FF;
 	switch (modetemp)
 	{
@@ -139,9 +145,13 @@ void getMode(){
 			AlarmTime.hour = DisplayTime_TimeSetter(&Time, H);
 		break;
 		default:
+			
 			write2Bar(Time.sec);
 			DisplayTime(&Time, ColonControl);
-			LCD_IPainter(70, 40, 1, 88);
+			twi_start_rd(0x90, data, 2);
+			temp = ((data[0] << 8)|(data[1]))/128;
+			itoa(temp, tempin, 10);
+			LCD_IPainter(tempin, 40, 1, 88);
 		break;
 	}
 }
@@ -152,6 +162,7 @@ void SoundAlarm(){
 }
 
 int main(){
+	//Initializations
 	Timer0Setup();
 	timer1_init();
 	Timer2Setup();
@@ -159,10 +170,12 @@ int main(){
 	Timer3Setup();
 	init_SPI();
 	ADC0Setup();
+	DDRD |= 0x03;
+	init_twi();
+	uart_init();
 	
 	
-	getCurrentEncoderStates();
-	sei();   //Global Interrupt Enable
+	
 	write2Bar(CurMode);
 	Time.sec = 45;
 	Time.min = 05;
@@ -173,9 +186,13 @@ int main(){
 	LCD_Init();
 	LCD_MovCursorLn1();
 	
+	uint8_t datainit[2] = {0x00, 0x00};
+	
+	twi_start_wr(0x90, datainit, 2);
+	sei();   //Global Interrupt Enable
 	while(1){
-		setVolume(0x03FF);
-		setFrequency(3000);
+		//setVolume(0x03FF);
+		//setFrequency(3000);
 		
 		
 		getMode();
