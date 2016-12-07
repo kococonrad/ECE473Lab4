@@ -52,6 +52,9 @@
 #define S A
 #define M G
 #define H D
+#define T24HRFRMT 0x00
+#define T12HRFRMT 0x01
+#define PMFRMT 0x02
 
 typedef struct {
 	uint8_t digit1;
@@ -71,4 +74,6 @@ short DisplayTime_TimeSetter(RTC_Time* CurrentTime, uint8_t TimeParameter);
 void Timer2Setup();
 void setBrightness(uint8_t duty);
 void ADC0Setup();
+void setHour(RTC_Time* CurrentTime);
+void setMin(RTC_Time* CurrentTime);
 #endif /* SEGMENTDISPLAY_H_ */

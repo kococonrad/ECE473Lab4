@@ -264,6 +264,15 @@ void LCD_Init(void) {
 	LCD_DATA(0b00000); // <-- top 5 pixels of icon
 	LCD_DATA(0b00000); // <-- next 5 pixels of icon
 	LCD_DATA(0b00000);
+	LCD_DATA(0b00000);
+	LCD_DATA(0b11111);
+	LCD_DATA(0b11111);
+	LCD_DATA(0b11111);
+	LCD_DATA(0b11111); // <-- bottom 5 pixels of icon
+	
+	LCD_DATA(0b00000); // <-- top 5 pixels of icon
+	LCD_DATA(0b00000); // <-- next 5 pixels of icon
+	LCD_DATA(0b11111);
 	LCD_DATA(0b11111);
 	LCD_DATA(0b11111);
 	LCD_DATA(0b11111);
@@ -297,11 +306,14 @@ void LCD_Init(void) {
 	LCD_DATA(0b01000);
 	LCD_DATA(0b01110); // <-- bottom 5 pixels of icon
 	
-	
-	// Create a custom battery logo in slot 0
-	
-	
-	
+	LCD_DATA(0b11100); // <-- top 5 pixels of icon
+	LCD_DATA(0b10100); // <-- next 5 pixels of icon
+	LCD_DATA(0b11100);
+	LCD_DATA(0b10100);
+	LCD_DATA(0b01000);
+	LCD_DATA(0b01000);
+	LCD_DATA(0b01000);
+	LCD_DATA(0b01110); // <-- bottom 5 pixels of icon
 	
 	/*
 		Clear the screen and enable the LCD
@@ -314,7 +326,7 @@ void LCD_Init(void) {
 	LCD_CMD(0x0C);
 }
 
-void LCD_IPainter(char* LocalTemp, uint16_t ExternalTemp, uint8_t AlarmStatus, uint16_t Station){
+void LCD_IPainter(char* LocalTemp, char* ExternalTemp, uint8_t AlarmStatus, uint16_t Station){
 	LCD_Clr();
 	LCD_MovCursorLn1();
 	LCD_PutStr("I:");
@@ -325,24 +337,34 @@ void LCD_IPainter(char* LocalTemp, uint16_t ExternalTemp, uint8_t AlarmStatus, u
 		
 	LCD_PutStr("    ");
 	
-	LCD_PutChar(0x03);
+	LCD_PutChar(0x04);
 	LCD_PutChar(0x0);
 	LCD_PutChar(0x1);
 	LCD_PutChar(0x02);
+	LCD_PutChar(0x03);
 	
 	if (AlarmStatus == 1)
-	LCD_PutChar(0x04);
+		LCD_PutChar(0x05);
 	else
-	LCD_PutChar(' ');
+		LCD_PutChar(' ');
 	
 	LCD_MovCursorLn2();
 			
 	LCD_PutStr("O:");
-	if(ExternalTemp <= 0)
-		ExternalTemp = 0;
-	LCD_PutDec16(ExternalTemp);
+	//if(ExternalTemp <= 0)
+		//ExternalTemp = 0;
+	LCD_PutStr(ExternalTemp);
 	LCD_PutStr("  ");
 	
 	LCD_PutStr("FM: ");
 	
+}
+
+
+void testPrint(char val){
+	LCD_Clr();
+	LCD_MovCursorLn1();
+	LCD_PutStr("I:");
+	LCD_PutChar(val);
+	LCD_PutStr("  ");
 }

@@ -62,6 +62,49 @@ void AlarmDisplayTime(RTC_Time* CurrentTime, uint8_t flashColon){
 	setFrequency(0);
 }
 
+void DisplayHour(RTC_Time* CurrentTime){
+	uint8_t zeroState = 0x00;
+	DDRA = 0xFF;
+	set7SegmentDigits_Time(CurrentTime);
+	
+	DigitSelectPort = Digit4;
+	if (digitValues.digit4 == Zero)
+	{
+		zeroState |= Digit4ZeroBit;
+		DigitsPort = 0xFF;
+	}
+	else
+	DigitsPort = ~(digitValues.digit4);
+	_delay_us(GhostingAdj);
+	DigitSelectPort = Digit3;
+	DigitsPort = ~(digitValues.digit3);
+	_delay_us(GhostingAdj);
+	
+	DigitSelectPort = Colon;
+	DigitsPort = ~(A|B|~C);
+	
+	_delay_us(GhostingAdj);
+	DigitsPort = 0xFF;
+}
+
+void DisplayMin(RTC_Time* CurrentTime){
+	DDRA = 0xFF;
+	set7SegmentDigits_Time(CurrentTime);
+	
+	DigitSelectPort = Digit2;
+	DigitsPort = ~(digitValues.digit2);
+	_delay_us(GhostingAdj);
+	DigitSelectPort = Digit1;
+	DigitsPort = ~(digitValues.digit1);
+	_delay_us(GhostingAdj);
+	
+	DigitSelectPort = Colon;
+	DigitsPort = ~(A|B|~C);
+	
+	_delay_us(GhostingAdj);
+	DigitsPort = 0xFF;
+}
+
 void DisplayTime(RTC_Time* CurrentTime, uint8_t flashColon){
 	uint8_t zeroState = 0x00;
 	DDRA = 0xFF;
@@ -142,56 +185,61 @@ void Display(int Number){
 	DigitsPort = 0xFF;
 }
 
-short DisplayTime_TimeSetter(RTC_Time* CurrentTime, uint8_t TimeParameter){
-	uint8_t state1, ret;
-	short temp = 0;
-	switch (TimeParameter)
-	{
-		case S:
-			temp = CurrentTime->sec;
-			break;
-		case M:
-			temp = CurrentTime->min;
-			break;
-		case H:
-			temp = CurrentTime->hour;
-			break;
-		default:
-		/* Your code here */
-		break;
-	}
+void setHour(RTC_Time* CurrentTime){
+	uint8_t but_ret, enc_ret;
 	do
 	{
-		state1 = readEncoders();
-		
-		if(state1 == FWD)
-			temp++;
-		else if(state1 == REV)
-			temp--;
-		
-		if (temp >= 60)
+		enc_ret = readEncoders();
+		if (enc_ret == FWD)
 		{
-			temp = 0;
+			CurrentTime->hour++;
+			if (CurrentTime->hour > 23)
+				CurrentTime->hour = 0;
+			else if (CurrentTime->hour < 0)
+				CurrentTime->hour = 23;
 		}
-		else if (temp < 0)
+		else if (enc_ret == REV)
 		{
-			temp = 60;
+			CurrentTime->hour--;
+			if (CurrentTime->hour > 23)
+				CurrentTime->hour = 0;
+			else if (CurrentTime->hour < 0)
+				CurrentTime->hour = 23;
 		}
-		DDRA = 0xFF;
-		set7SegmentDigits_Number(temp);
-		DigitSelectPort = Digit4;
-		DigitsPort = ~(TimeParameter);
-		_delay_us(GhostingAdj);
-		DigitSelectPort = Digit2;
-		DigitsPort = ~(digitValues.digit2);
-		_delay_us(GhostingAdj);
-		DigitSelectPort = Digit1;
-		DigitsPort = ~(digitValues.digit1);
-		_delay_us(GhostingAdj);
 		
-		ret = readButtons();
-	} while (ret != SETBUTTON);
-	return temp;
+		but_ret = readButtons();
+		
+		DisplayHour(CurrentTime);
+	} while (but_ret != 0x01);
+}
+
+void setMin(RTC_Time* CurrentTime){
+	uint8_t but_ret, enc_ret;
+	do
+	{
+		enc_ret = readEncoders();
+		if (enc_ret == FWD)
+		{
+			CurrentTime->min++;
+			if (CurrentTime->min > 59)
+			CurrentTime->min = 0;
+			else if (CurrentTime->min < 0)
+			CurrentTime->min = 59;
+		}
+		else if (enc_ret == REV)
+		{
+			CurrentTime->min--;
+			if (CurrentTime->min > 59)
+			CurrentTime->min = 0;
+			else if (CurrentTime->min < 0)
+			CurrentTime->min = 59;
+		}
+		
+		but_ret = readButtons();
+		
+		DisplayMin(CurrentTime);
+	} while (but_ret != 0x01);
+	CurrentTime->sec = 0;
 }
 
 uint8_t dec2Segments(uint8_t Number){
@@ -234,10 +282,37 @@ uint8_t dec2Segments(uint8_t Number){
 }
 
 void set7SegmentDigits_Time(RTC_Time* CurrentTime){
-	digitValues.digit4 = dec2Segments((CurrentTime->hour/10)%10);
-	digitValues.digit3 = dec2Segments(CurrentTime->hour%10);
-	digitValues.digit2 = dec2Segments((CurrentTime->min/10)%10);
-	digitValues.digit1 = dec2Segments(CurrentTime->min%10);
+	if (CurrentTime->TimeFormat == T24HRFRMT)
+	{
+		digitValues.digit4 = dec2Segments((CurrentTime->hour/10)%10);
+		digitValues.digit3 = dec2Segments(CurrentTime->hour%10);
+		digitValues.digit2 = dec2Segments((CurrentTime->min/10)%10);
+		digitValues.digit1 = dec2Segments(CurrentTime->min%10);
+	}
+	else
+	{
+		if (CurrentTime->hour > 12)
+		{
+			CurrentTime->hour -= 12;
+			CurrentTime->TimeFormat |= (1 << PMFRMT);
+			digitValues.digit3 = (dec2Segments(CurrentTime->hour%10))|DEC;
+		}
+		else if (CurrentTime->hour == 0)
+		{
+			CurrentTime->hour += 12;
+			CurrentTime->TimeFormat |= ~(1 << PMFRMT);
+			digitValues.digit3 = (dec2Segments(CurrentTime->hour%10));
+		}
+		else
+		{
+			CurrentTime->TimeFormat |= ~(1 << PMFRMT);
+			digitValues.digit3 = dec2Segments(CurrentTime->hour%10);
+		}
+		
+		digitValues.digit4 = dec2Segments((CurrentTime->hour/10)%10);
+		digitValues.digit2 = dec2Segments((CurrentTime->min/10)%10);
+		digitValues.digit1 = (dec2Segments(CurrentTime->min%10));
+	}
 }
 
 void set7SegmentDigits_Number(short Number){

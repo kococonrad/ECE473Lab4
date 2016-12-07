@@ -22,7 +22,7 @@
 #define Enc1_Mask 0x03;
 #define Enc2_Mask 0x0C;
 #define Enc2_Shift 0x02;
-#define ENC_LoadPin PE7
+#define ENC_LoadPin PE4
 #define ENC_EnPin PE6
 #define ENC_DDR DDRE
 #define ENC_PORT PORTE

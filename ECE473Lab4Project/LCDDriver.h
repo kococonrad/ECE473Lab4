@@ -23,6 +23,6 @@ void LCD_MovCursorLn2(void);
 void LCD_MovCursor(uint8_t line, uint8_t position);
 void LCD_CursorBlinkOn(void);
 void LCD_CursorBlinkOff(void);
-void LCD_IPainter(char* LocalTemp, uint16_t ExternalTemp, uint8_t AlarmStatus, uint16_t Station);
-
+void LCD_IPainter(char* LocalTemp, char* ExternalTemp, uint8_t AlarmStatus, uint16_t Station);
+void testPrint(char val);
 #endif /* LCDDRIVER_H_ */

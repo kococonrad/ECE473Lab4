@@ -30,11 +30,30 @@
 #include "LCDDriver.h"
 #include "twi_master.h"
 #include "uart_functions.h"
+#include "si4734.h"
 
 #define CLOCK_SET 0b00000001
 #define ALARM_SET 0b00000010
+#define TIME_FORMAT_SW 0x80
+#define TIME_FORMAT_SW2 0x40
 
 #define DEBOUNCE_TIME 3 	// Number of button reads until it acknowledge button press
+
+//volatile uint16_t current_fm_freq=9990; //krkt default
+uint8_t si4734_wr_buf[9];//not sure we ever use 9 on either of these
+uint8_t si4734_rd_buf[9];
+uint8_t si4734_tune_status_buf[8];
+
+volatile uint16_t eeprom_fm_freq;
+volatile uint16_t eeprom_am_freq;
+volatile uint16_t eeprom_sw_freq;
+volatile uint8_t  eeprom_volume;
+
+volatile uint16_t current_fm_freq = 9990;
+volatile uint16_t current_am_freq;
+volatile uint16_t current_sw_freq;
+volatile uint8_t  current_volume;
+volatile uint8_t STC_interrupt;
 
 volatile int count = 0;
 volatile uint8_t brightness=0;
@@ -50,8 +69,19 @@ RTC_Time AlarmTime;
 uint8_t AlarmArmed = 0;
 uint8_t data[2] = {0,0};
 int temp = 0;
+int exttemp = 0;
+char extTempArr[2] = {0,0};
 
 int scale[] = {C5, CSharp5, D5, DSharp5, E5, F5, FSharp5, G5, GSharp5, A5, ASharp5, B5};
+
+
+//******************************************************************************
+// External interrupt 7 is on Port E bit 7. The interrupt is triggered on the
+// rising edge of Port E bit 7.  The i/o clock must be running to detect the
+// edge (not asynchronouslly triggered)
+//******************************************************************************
+//ISR(INT7_vect){STC_interrupt = TRUE;}
+/***********************************************************************/
 
 ISR(TIMER0_OVF_vect){
 	if (frequency > 11)
@@ -64,7 +94,9 @@ ISR(TIMER0_OVF_vect){
 	}
 	ColonControl ^= 0x01;
 	incrementTime(&Time);
-	//LCD_IPainter(70, 40, 1, 88);
+	extTempArr[0] = uart_getc();
+	extTempArr[1] = uart_getc();
+	
 	//setFrequency(scale[frequency]);
 	//frequency++;
 	count++;
@@ -104,8 +136,6 @@ void Timer0Setup(){
 	_delay_ms(1000); //Allow crystal stabilization
 }
 
-
-
 void init_DeviceDependencies(){
 	pinOutput(BG_OEPortDir, BG_OEPin);
 	pinOutput(BG_REGCLKDir, BG_REGCLK);
@@ -127,37 +157,46 @@ void write2Bar(uint8_t val){
 void getMode(){
 	uint8_t modetemp= readButtons();
 	
-	
 	char tempin[7];
+	char tempout[7];
 	DDRC = 0x03FF;
 	switch (modetemp)
 	{
 		case CLOCK_SET:
 			write2Bar(CLOCK_SET);
-			Time.sec = DisplayTime_TimeSetter(&Time, S);
-			Time.min = DisplayTime_TimeSetter(&Time, M);
-			Time.hour = DisplayTime_TimeSetter(&Time, H);
+			setHour(&Time);
+			setMin(&Time);
 		break;
 		case ALARM_SET:
 			write2Bar(ALARM_SET);
-			AlarmTime.sec = DisplayTime_TimeSetter(&Time, S);
-			AlarmTime.min = DisplayTime_TimeSetter(&Time, M);
-			AlarmTime.hour = DisplayTime_TimeSetter(&Time, H);
+			
+		break;
+		case TIME_FORMAT_SW:
+			Time.TimeFormat = 0x00;
+			Time.TimeFormat = 0x01;
+		break;
+		case TIME_FORMAT_SW2:
+			Time.TimeFormat = 0x00;
+			Time.TimeFormat = T12HRFRMT;
 		break;
 		default:
-			
 			write2Bar(Time.sec);
 			DisplayTime(&Time, ColonControl);
+			//testPrint(extTempArr[0]);
 			twi_start_rd(0x90, data, 2);
 			temp = ((data[0] << 8)|(data[1]))/128;
+			exttemp = ((extTempArr[1] << 8)|(extTempArr[0]))/128;
 			itoa(temp, tempin, 10);
-			LCD_IPainter(tempin, 40, 1, 88);
+			itoa(exttemp, tempout, 10);
+			LCD_IPainter(tempin, tempout, 1, 88);
 		break;
 	}
 }
 
 void SoundAlarm(){
+	setVolume(0x03FF);
 	AlarmDisplayTime(&Time, ColonControl);
+	setFrequency(C5);
 	_delay_ms(10);
 }
 
@@ -173,31 +212,31 @@ int main(){
 	DDRD |= 0x03;
 	init_twi();
 	uart_init();
+	//radio_reset();
+	//fm_pwr_up();
+	//fm_tune_freq();
+	uint8_t datainit[2] = {0x00, 0x00};
 	
-	
-	
+	twi_start_wr(0x90, datainit, 2);
+	sei();   //Global Interrupt Enable
 	write2Bar(CurMode);
 	Time.sec = 45;
 	Time.min = 05;
 	Time.hour = 17;
+	Time.TimeFormat = T24HRFRMT;
 	AlarmTime.sec = 0;
 	AlarmTime.min = 0;
 	AlarmTime.hour = 0;
 	LCD_Init();
 	LCD_MovCursorLn1();
 	
-	uint8_t datainit[2] = {0x00, 0x00};
 	
-	twi_start_wr(0x90, datainit, 2);
-	sei();   //Global Interrupt Enable
 	while(1){
 		//setVolume(0x03FF);
-		//setFrequency(3000);
 		
 		
 		getMode();
 		//if (AlarmArmed == 1)
-		//{
 			//if (AlarmTime.hour == Time.hour && AlarmTime.min == Time.min)
 			//{
 				//SoundAlarm();

@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <avr/pgmspace.h>
 
-#define USART_BAUDRATE 57600  
+#define USART_BAUDRATE 9600  
 //Compute baudvalue at compile time from USART_BAUDRATE and F_CPU
 #define BAUDVALUE  ((F_CPU/(USART_BAUDRATE * 16UL)) - 1 )
 
@@ -85,7 +85,7 @@ char uart_getc(void) {
 
   while (!(UCSR0A & (1<<RXC0))) {
   timer++;
-  if(timer >= 16000){ return(0);}
+  if(timer >= 16000){ return('F');}
   //what should we return if nothing comes in?
   //return the data into a global variable
   //give uart_getc the address of the variable

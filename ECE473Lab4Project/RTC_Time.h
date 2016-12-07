@@ -14,6 +14,7 @@ typedef struct {
 	short sec;
 	short min;
 	short hour;
+	uint8_t TimeFormat;
 } RTC_Time;
 
 void incrementTime(RTC_Time* Current_Time);
