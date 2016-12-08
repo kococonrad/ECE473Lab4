@@ -32,27 +32,25 @@
 #include "uart_functions.h"
 #include "si4734.h"
 
-#define CLOCK_SET 0b00000001
-#define ALARM_SET 0b00000010
-#define TIME_FORMAT_SW 0x80
-#define TIME_FORMAT_SW2 0x40
+
 
 #define DEBOUNCE_TIME 3 	// Number of button reads until it acknowledge button press
 
-//volatile uint16_t current_fm_freq=9990; //krkt default
 uint8_t si4734_wr_buf[9];//not sure we ever use 9 on either of these
 uint8_t si4734_rd_buf[9];
 uint8_t si4734_tune_status_buf[8];
 
+volatile uint8_t system_status;
 volatile uint16_t eeprom_fm_freq;
 volatile uint16_t eeprom_am_freq;
 volatile uint16_t eeprom_sw_freq;
 volatile uint8_t  eeprom_volume;
 
-volatile uint16_t current_fm_freq = 9990;
+volatile uint16_t current_fm_freq = 10110;
 volatile uint16_t current_am_freq;
 volatile uint16_t current_sw_freq;
-volatile uint8_t  current_volume;
+volatile uint16_t radio_volume;
+volatile uint8_t  current_volume = 0;
 volatile uint8_t STC_interrupt;
 
 volatile int count = 0;
@@ -65,7 +63,9 @@ static uint8_t lastButton = 0, deb_count = 0;
 char ActiveModes = 0x00;
 char ColonControl = 0x00;
 RTC_Time Time;
+
 RTC_Time AlarmTime;
+
 uint8_t AlarmArmed = 0;
 uint8_t data[2] = {0,0};
 int temp = 0;
@@ -80,7 +80,7 @@ int scale[] = {C5, CSharp5, D5, DSharp5, E5, F5, FSharp5, G5, GSharp5, A5, AShar
 // rising edge of Port E bit 7.  The i/o clock must be running to detect the
 // edge (not asynchronouslly triggered)
 //******************************************************************************
-//ISR(INT7_vect){STC_interrupt = TRUE;}
+ISR(INT7_vect){STC_interrupt = TRUE;}
 /***********************************************************************/
 
 ISR(TIMER0_OVF_vect){
@@ -159,7 +159,6 @@ void getMode(){
 	
 	char tempin[7];
 	char tempout[7];
-	DDRC = 0x03FF;
 	switch (modetemp)
 	{
 		case CLOCK_SET:
@@ -169,17 +168,34 @@ void getMode(){
 		break;
 		case ALARM_SET:
 			write2Bar(ALARM_SET);
+			setHour(&AlarmTime);
+			setMin(&AlarmTime);
+			TOGGLE_BIT(system_status, ALARM_ON);
+		break;
+		case RADIO_MODE:
+			mute_radio();
+		break;
+		case RADIO_TOGGLE:
+			mute_radio();
+			//MuteAll();
+			if (radio_volume == 0)
+			{
+				CLEAR_BIT(system_status, RADIO_ON);
+			}
+			else
+				SET_BIT(system_status, RADIO_ON);
 			
 		break;
-		case TIME_FORMAT_SW:
-			Time.TimeFormat = 0x00;
-			Time.TimeFormat = 0x01;
-		break;
-		case TIME_FORMAT_SW2:
-			Time.TimeFormat = 0x00;
-			Time.TimeFormat = T12HRFRMT;
+		case FORMAT_TOGGLE:
+			TOGGLE_BIT(Time.TimeFormat, TFORMAT_BIT);
+			TOGGLE_BIT(AlarmTime.TimeFormat, TFORMAT_BIT);
+			TOGGLE_BIT(system_status, TIME_FORMAT);
 		break;
 		default:
+			//Display(Time.TimeFormat);
+			//DisplayEncoder();
+			volumeAdj();
+			stationAdj();
 			write2Bar(Time.sec);
 			DisplayTime(&Time, ColonControl);
 			//testPrint(extTempArr[0]);
@@ -188,7 +204,7 @@ void getMode(){
 			exttemp = ((extTempArr[1] << 8)|(extTempArr[0]))/128;
 			itoa(temp, tempin, 10);
 			itoa(exttemp, tempout, 10);
-			LCD_IPainter(tempin, tempout, 1, 88);
+			LCD_IPainter(tempin, tempout, system_status, current_fm_freq);
 		break;
 	}
 }
@@ -198,6 +214,11 @@ void SoundAlarm(){
 	AlarmDisplayTime(&Time, ColonControl);
 	setFrequency(C5);
 	_delay_ms(10);
+}
+
+void SetupInterrupt(){
+	EICRB|=(1<<ISC70)|(1<<ISC71); //enable external interupt 7 rising edge
+	EIMSK|=(1<<INT7);
 }
 
 int main(){
@@ -212,29 +233,21 @@ int main(){
 	DDRD |= 0x03;
 	init_twi();
 	uart_init();
-	//radio_reset();
-	//fm_pwr_up();
-	//fm_tune_freq();
+	setVolume(current_volume);
 	uint8_t datainit[2] = {0x00, 0x00};
 	
 	twi_start_wr(0x90, datainit, 2);
+	SetupInterrupt();
 	sei();   //Global Interrupt Enable
+	
 	write2Bar(CurMode);
-	Time.sec = 45;
-	Time.min = 05;
-	Time.hour = 17;
-	Time.TimeFormat = T24HRFRMT;
-	AlarmTime.sec = 0;
-	AlarmTime.min = 0;
-	AlarmTime.hour = 0;
+	
 	LCD_Init();
 	LCD_MovCursorLn1();
 	
+	init_radio();
 	
 	while(1){
-		//setVolume(0x03FF);
-		
-		
 		getMode();
 		//if (AlarmArmed == 1)
 			//if (AlarmTime.hour == Time.hour && AlarmTime.min == Time.min)

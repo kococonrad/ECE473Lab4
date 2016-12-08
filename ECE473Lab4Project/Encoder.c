@@ -61,13 +61,43 @@ uint8_t readEncoders(){
 
 	//Translate values to direction ENCODER1
 	if((Enc1_past & 0x3F) == 0x3E){
-		if(currentEncoderState & 0x04) return REV;
-		else return FWD;
+		if(currentEncoderState & 0x04) return REV1;
+		else return FWD1;
 	}
 	//Tranlsates values to direction Encoder2
+	else if((Enc2_past & 0x3F) == 0x3E){
+		if(currentEncoderState & 0x01) return REV2;
+		else return FWD2;
+	}
+	return REST;
+}
+
+uint8_t readEncoder1(){
+	uint8_t currentEncoderState = getCurrentEncoderStates();
+
+	//Get encoder 1 state
+	if(~(Enc1_past == 0xFF) || ~(currentEncoderState & ENC1MASK))
+		Enc1_past = (Enc1_past<<1) | ((currentEncoderState & ENC1MASK) ? 1 : 0);
+	
+	//Translate values to direction ENCODER1
+	if((Enc1_past & 0x3F) == 0x3E){
+		if(currentEncoderState & 0x04) return REV1;
+		else return FWD1;
+	}
+	return REST;
+}
+
+uint8_t readEncoder2(){
+	uint8_t currentEncoderState = getCurrentEncoderStates();
+	
+	//Get encoder 2 state
+	if(~(Enc2_past == 0xFF) || ~(currentEncoderState & ENC2MASK))
+		Enc2_past = (Enc2_past<<1) | ((currentEncoderState & ENC2MASK) ? 1 : 0);
+	
+	//Tranlsates values to direction Encoder2
 	if((Enc2_past & 0x3F) == 0x3E){
-		if(currentEncoderState & 0x01) return REV;
-		else return FWD;
+		if(currentEncoderState & 0x01) return REV1;
+		else return FWD1;
 	}
 	return REST;
 }

@@ -30,10 +30,17 @@
 #define AM_TUNE_STATUS  0x42
 #define AM_RSQ_STATUS   0x43
 #define AM_RSQ_STATUS_IN_INTACK 0x01
-#define GET_REV         0x10 
+#define GET_REV         0x10
+#define RX_VOLUME		0x4000 //range 0 to 63 Default: 63/0x003F
+#define RX_HARD_MUTE	0x4001 // default 0x0000 Mute
+#define RX_MUTE_LEFT	0x02
+#define RX_MUTE_RIGHT	0x01
+#define RX_MUTELR		0x03
 
 #define FALSE           0x00
 #define TRUE            0x01
+
+#define RSTAT_MUTE		0x01
 
 //si4734.c function prototypes
 uint8_t get_int_status();
@@ -52,3 +59,6 @@ void    set_property();
 void    get_rev();
 void    get_fm_rsq_status();
 void	init_radio();
+void	mute_radio();
+void	stationAdj();
+void	fm_tune_freq_special();

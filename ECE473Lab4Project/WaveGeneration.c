@@ -10,7 +10,12 @@
 #endif
 
 #include<avr/io.h>
+#include <util/delay.h>
 #include "main.h"
+#include "Encoder.h"
+#include "SegmentDisplay.h"
+
+extern uint16_t current_volume;
 
  void timer1_init()
  {
@@ -52,4 +57,54 @@
 
  void setVolume(uint16_t duty){
 	 OCR3A = duty;
+ }
+ 
+ void volumeAdj(){
+	 uint8_t enc_ret = readEncoder2();
+	 uint16_t count = 0;
+	 uint8_t temp = 0;
+	 if (enc_ret == FWD1 || enc_ret == REV1)
+	 {
+		 while (1)
+		 {
+			 enc_ret = readEncoder2();
+			 if (enc_ret == FWD1)
+			 {
+				 if (current_volume < 0x03FF)
+				 {
+					 current_volume += 28;
+				 }
+				 else if (current_volume >= 0x03FF)
+				 {
+					 current_volume = 0x03FF;
+				 }
+			 }
+			 else if (enc_ret == REV1)
+			 {
+				 if (current_volume > 0)
+				 {
+					 current_volume -= 28;
+				 }
+				 else if (current_volume <= 0x00)
+				 {
+					 current_volume = 0;
+				 }
+			 }
+			 else
+			 {
+				 count++;
+				 if (count >= 2000)
+				 {
+					 return;
+				 }
+			 }
+			 setVolume(current_volume);
+			 temp = current_volume/28;
+			 Display(temp);
+		 }
+	 }
+ }
+ 
+ void MuteAll(){
+	 setVolume(0);
  }

@@ -190,7 +190,7 @@ void setHour(RTC_Time* CurrentTime){
 	do
 	{
 		enc_ret = readEncoders();
-		if (enc_ret == FWD)
+		if (enc_ret == FWD2)
 		{
 			CurrentTime->hour++;
 			if (CurrentTime->hour > 23)
@@ -198,7 +198,7 @@ void setHour(RTC_Time* CurrentTime){
 			else if (CurrentTime->hour < 0)
 				CurrentTime->hour = 23;
 		}
-		else if (enc_ret == REV)
+		else if (REV2)
 		{
 			CurrentTime->hour--;
 			if (CurrentTime->hour > 23)
@@ -218,7 +218,7 @@ void setMin(RTC_Time* CurrentTime){
 	do
 	{
 		enc_ret = readEncoders();
-		if (enc_ret == FWD)
+		if (enc_ret == FWD1)
 		{
 			CurrentTime->min++;
 			if (CurrentTime->min > 59)
@@ -226,7 +226,7 @@ void setMin(RTC_Time* CurrentTime){
 			else if (CurrentTime->min < 0)
 			CurrentTime->min = 59;
 		}
-		else if (enc_ret == REV)
+		else if (enc_ret == REV1)
 		{
 			CurrentTime->min--;
 			if (CurrentTime->min > 59)
@@ -282,36 +282,36 @@ uint8_t dec2Segments(uint8_t Number){
 }
 
 void set7SegmentDigits_Time(RTC_Time* CurrentTime){
-	if (CurrentTime->TimeFormat == T24HRFRMT)
-	{
-		digitValues.digit4 = dec2Segments((CurrentTime->hour/10)%10);
-		digitValues.digit3 = dec2Segments(CurrentTime->hour%10);
-		digitValues.digit2 = dec2Segments((CurrentTime->min/10)%10);
-		digitValues.digit1 = dec2Segments(CurrentTime->min%10);
-	}
-	else
+	if (CHECK_BIT(CurrentTime->TimeFormat, TFORMAT_BIT))
 	{
 		if (CurrentTime->hour > 12)
 		{
 			CurrentTime->hour -= 12;
-			CurrentTime->TimeFormat |= (1 << PMFRMT);
+			//SET_BIT(CurrentTime->TimeFormat |= (1 << PMFRMT);
 			digitValues.digit3 = (dec2Segments(CurrentTime->hour%10))|DEC;
 		}
 		else if (CurrentTime->hour == 0)
 		{
 			CurrentTime->hour += 12;
-			CurrentTime->TimeFormat |= ~(1 << PMFRMT);
+			//CurrentTime->TimeFormat |= ~(1 << PMFRMT);
 			digitValues.digit3 = (dec2Segments(CurrentTime->hour%10));
 		}
 		else
 		{
-			CurrentTime->TimeFormat |= ~(1 << PMFRMT);
+			//CurrentTime->TimeFormat |= ~(1 << PMFRMT);
 			digitValues.digit3 = dec2Segments(CurrentTime->hour%10);
 		}
 		
 		digitValues.digit4 = dec2Segments((CurrentTime->hour/10)%10);
 		digitValues.digit2 = dec2Segments((CurrentTime->min/10)%10);
 		digitValues.digit1 = (dec2Segments(CurrentTime->min%10));
+	}
+	else
+	{
+		digitValues.digit4 = dec2Segments((CurrentTime->hour/10)%10);
+		digitValues.digit3 = dec2Segments(CurrentTime->hour%10);
+		digitValues.digit2 = dec2Segments((CurrentTime->min/10)%10);
+		digitValues.digit1 = dec2Segments(CurrentTime->min%10);
 	}
 }
 

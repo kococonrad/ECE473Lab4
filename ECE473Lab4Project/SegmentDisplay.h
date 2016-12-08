@@ -52,9 +52,7 @@
 #define S A
 #define M G
 #define H D
-#define T24HRFRMT 0x00
-#define T12HRFRMT 0x01
-#define PMFRMT 0x02
+
 
 typedef struct {
 	uint8_t digit1;

@@ -13,8 +13,10 @@
 //Encoder definitions
 //states for REST FWD and REV
 #define REST 0
-#define FWD 1
-#define REV 2
+#define FWD1 0x01
+#define REV1 0x02
+#define FWD2 0x04
+#define REV2 0x08
 
 //Encoder values to read current/past states and masks to read individual values
 #define ENC1MASK 0x08
@@ -38,4 +40,6 @@ uint8_t getCurrentEncoderStates();
 //Input: NULL
 //Output: Debounces the encoders and returns the direction being turned
 uint8_t readEncoders();
+uint8_t readEncoder1();
+uint8_t readEncoder2();
 #endif /* ENCODER_H_ */

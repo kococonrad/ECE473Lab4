@@ -19,6 +19,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "LCDDriver.h"
+#include "main.h"
 
 char lcd_str[16];  //holds string to send to lcd
 
@@ -326,7 +327,7 @@ void LCD_Init(void) {
 	LCD_CMD(0x0C);
 }
 
-void LCD_IPainter(char* LocalTemp, char* ExternalTemp, uint8_t AlarmStatus, uint16_t Station){
+void LCD_IPainter(char* LocalTemp, char* ExternalTemp, uint8_t Status, uint16_t Station){
 	LCD_Clr();
 	LCD_MovCursorLn1();
 	LCD_PutStr("I:");
@@ -343,7 +344,7 @@ void LCD_IPainter(char* LocalTemp, char* ExternalTemp, uint8_t AlarmStatus, uint
 	LCD_PutChar(0x02);
 	LCD_PutChar(0x03);
 	
-	if (AlarmStatus == 1)
+	if (CHECK_BIT(Status, ALARM_ON))
 		LCD_PutChar(0x05);
 	else
 		LCD_PutChar(' ');
@@ -357,6 +358,16 @@ void LCD_IPainter(char* LocalTemp, char* ExternalTemp, uint8_t AlarmStatus, uint
 	LCD_PutStr("  ");
 	
 	LCD_PutStr("FM: ");
+	if (CHECK_BIT(Status, RADIO_ON))
+	{
+		LCD_PutStr("OFF");
+	}
+	else
+	{
+		LCD_PutDec16(Station/100);
+		LCD_PutChar('.');
+		LCD_PutDec16((Station/10)%10);
+	}
 	
 }
 

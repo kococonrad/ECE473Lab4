@@ -28,4 +28,6 @@
 
 void Timer3Setup();
 void setVolume(uint16_t duty);
+ void volumeAdj();
+ void MuteAll();
 #endif /* WAVEGENERATION_H_ */
